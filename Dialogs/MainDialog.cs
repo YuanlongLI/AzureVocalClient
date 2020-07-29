@@ -28,6 +28,7 @@ namespace Microsoft.BotBuilderSamples.Dialogs
 
             AddDialog(new TextPrompt(nameof(TextPrompt)));
             AddDialog(bookingDialog);
+            AddDialog(new CreateVMDialog());
             AddDialog(new WaterfallDialog(nameof(WaterfallDialog), new WaterfallStep[]
             {
                 IntroStepAsync,
@@ -51,7 +52,7 @@ namespace Microsoft.BotBuilderSamples.Dialogs
 
             // Use the text provided in FinalStepAsync or the default if it is the first time.
             var weekLaterDate = DateTime.Now.AddDays(7).ToString("MMMM d, yyyy");
-            var messageText = stepContext.Options?.ToString() ?? $"What can I help you with today?\nSay something like \"Book a flight from Paris to Berlin on {weekLaterDate}\"";
+            var messageText = stepContext.Options?.ToString() ?? $"What can I help you with today?\nSay something like \"Create a vm\"";
             var promptMessage = MessageFactory.Text(messageText, messageText, InputHints.ExpectingInput);
             return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = promptMessage }, cancellationToken);
         }
@@ -60,10 +61,12 @@ namespace Microsoft.BotBuilderSamples.Dialogs
         {
             if (!_luisRecognizer.IsConfigured)
             {
+                Logger.LogInformation("luis is not configured");
                 // LUIS is not configured, we just run the BookingDialog path with an empty BookingDetailsInstance.
                 return await stepContext.BeginDialogAsync(nameof(BookingDialog), new BookingDetails(), cancellationToken);
             }
 
+            Logger.LogInformation("luis is configured");
             // Call LUIS and gather any potential booking details. (Note the TurnContext has the response to the prompt.)
             var luisResult = await _luisRecognizer.RecognizeAsync<FlightBooking>(stepContext.Context, cancellationToken);
             switch (luisResult.TopIntent().intent)
@@ -82,6 +85,11 @@ namespace Microsoft.BotBuilderSamples.Dialogs
 
                     // Run the BookingDialog giving it whatever details we have from the LUIS call, it will fill out the remainder.
                     return await stepContext.BeginDialogAsync(nameof(BookingDialog), bookingDetails, cancellationToken);
+                
+                case FlightBooking.Intent.CreateVM:
+                    Logger.LogInformation("We are now in create vm intent");
+
+                    return await stepContext.BeginDialogAsync(nameof(CreateVMDialog), new CreatingDetails(), cancellationToken);
 
                 case FlightBooking.Intent.GetWeather:
                     // We haven't implemented the GetWeatherDialog so we just display a TODO message.
