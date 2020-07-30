@@ -54,7 +54,7 @@ namespace Microsoft.BotBuilderSamples.Dialogs
 
             // Use the text provided in FinalStepAsync or the default if it is the first time.
             var weekLaterDate = DateTime.Now.AddDays(7).ToString("MMMM d, yyyy");
-            var messageText = stepContext.Options?.ToString() ?? $"What can I help you with today?\nSay something like \"Create a vm\"";
+            var messageText = stepContext.Options?.ToString() ?? $"What can I help you with today?\nSay something like \"Create a VM\"";
             var promptMessage = MessageFactory.Text(messageText, messageText, InputHints.ExpectingInput);
             return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = promptMessage }, cancellationToken);
         }
@@ -172,6 +172,14 @@ namespace Microsoft.BotBuilderSamples.Dialogs
                 var timeProperty = new TimexProperty(result.TravelDate);
                 var travelDateMsg = timeProperty.ToNaturalLanguage(DateTime.Now);
                 var messageText = $"I have you booked to {result.Destination} from {result.Origin} on {travelDateMsg}";
+                var message = MessageFactory.Text(messageText, messageText, InputHints.IgnoringInput);
+                await stepContext.Context.SendActivityAsync(message, cancellationToken);
+            }
+
+            if (stepContext.Result is CreateVMDetails result2)
+            {
+                Thread.Sleep(10000);
+                var messageText = $"I have created a VM for you successfully. Cheers!";
                 var message = MessageFactory.Text(messageText, messageText, InputHints.IgnoringInput);
                 await stepContext.Context.SendActivityAsync(message, cancellationToken);
             }

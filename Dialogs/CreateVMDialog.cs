@@ -15,6 +15,7 @@ namespace Microsoft.BotBuilderSamples.Dialogs
 
         private const string LoginAsyncMsgText = "You have not logged in. Please login.";
         private const string NameStepMsgText = "Login succeeds. I have confirmed your identity based on your voice signature. What VM name would you like?";
+        private const string ResourceGroupStepMsgText = "What resource group would you like to create the VM in?";
         private const string LocationStepMsgText = "Where would you like to create the VM?";
         private const string ImageStepMsgText = "What OS do you want to install to the VM?";
         private const string DiskSizeStepMsgText = "What disk size in GB do you want?";
@@ -29,6 +30,7 @@ namespace Microsoft.BotBuilderSamples.Dialogs
             {
                 LoginAsync,
                 NameAsync,
+                ResourceGroupAsync,
                 LocationAsync,
                 ImageAsync,
                 DiskSizeAsync,
@@ -59,11 +61,28 @@ namespace Microsoft.BotBuilderSamples.Dialogs
             return await stepContext.NextAsync(createVMDetails.Name, cancellationToken);
         }
 
+        private async Task<DialogTurnResult> ResourceGroupAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
+        {
+            var createVMDetails = (CreateVMDetails)stepContext.Options;
+
+            var name = (string)stepContext.Result;
+            createVMDetails.Name = name.Replace(" ", "");
+
+            if (createVMDetails.ResourceGroup == null)
+            {
+                var promptMessage = MessageFactory.Text(ResourceGroupStepMsgText, ResourceGroupStepMsgText, InputHints.ExpectingInput);
+                return await stepContext.PromptAsync(nameof(TextPrompt), new PromptOptions { Prompt = promptMessage }, cancellationToken);
+            }
+
+            return await stepContext.NextAsync(createVMDetails.ResourceGroup, cancellationToken);
+        }
+
         private async Task<DialogTurnResult> LocationAsync(WaterfallStepContext stepContext, CancellationToken cancellationToken)
         {
             var createVMDetails = (CreateVMDetails)stepContext.Options;
 
-            createVMDetails.Name = (string)stepContext.Result;
+            var resourceGroup = (string)stepContext.Result;
+            createVMDetails.ResourceGroup = resourceGroup.Replace(" ", "");
 
             if (createVMDetails.Location == null)
             {
@@ -78,7 +97,8 @@ namespace Microsoft.BotBuilderSamples.Dialogs
         {
             var createVMDetails = (CreateVMDetails)stepContext.Options;
 
-            createVMDetails.Location = (string)stepContext.Result;
+            var location = (string)stepContext.Result;
+            createVMDetails.Location = location.ToLower().Replace(" ", "");
 
             if (createVMDetails.Image == null)
             {
@@ -93,8 +113,14 @@ namespace Microsoft.BotBuilderSamples.Dialogs
         {
             var createVMDetails = (CreateVMDetails)stepContext.Options;
 
-            createVMDetails.Image = (string)stepContext.Result;
-
+            var image = (string)stepContext.Result;
+            image = image.ToLower();
+            if (image.Contains("windows"))
+            {
+                image = "Win2019Datacenter";
+            }
+            createVMDetails.Image = image;
+            
             if (createVMDetails.DiskSize == null)
             {
                 var promptMessage = MessageFactory.Text(DiskSizeStepMsgText, DiskSizeStepMsgText, InputHints.ExpectingInput);
@@ -110,7 +136,7 @@ namespace Microsoft.BotBuilderSamples.Dialogs
 
             createVMDetails.DiskSize = (string)stepContext.Result;
 
-            var messageText = $"Please confirm, I will create a VM, name: {createVMDetails.Name}, location: {createVMDetails.Location}, OS: {createVMDetails.Image}, disk size: {createVMDetails.DiskSize}GB. Is this correct?";
+            var messageText = $"Please confirm, I will create a VM, name: {createVMDetails.Name}, resource group: {createVMDetails.ResourceGroup}, location: {createVMDetails.Location}, OS: {createVMDetails.Image}, disk size: {createVMDetails.DiskSize}GB. Is this correct?";
             var promptMessage = MessageFactory.Text(messageText, messageText, InputHints.ExpectingInput);
 
             return await stepContext.PromptAsync(nameof(ConfirmPrompt), new PromptOptions { Prompt = promptMessage }, cancellationToken);
@@ -121,7 +147,9 @@ namespace Microsoft.BotBuilderSamples.Dialogs
             if ((bool)stepContext.Result)
             {
                 var createVMDetails = (CreateVMDetails)stepContext.Options;
-
+                var messageText = $"Running: az vm create -g {createVMDetails.ResourceGroup} -n {createVMDetails.Name} -l {createVMDetails.Location} --image {createVMDetails.Image} --os-disk-size-gb {createVMDetails.DiskSize}";
+                var message = MessageFactory.Text(messageText, messageText, InputHints.IgnoringInput);
+                await stepContext.Context.SendActivityAsync(message, cancellationToken);
                 return await stepContext.EndDialogAsync(createVMDetails, cancellationToken);
             }
 

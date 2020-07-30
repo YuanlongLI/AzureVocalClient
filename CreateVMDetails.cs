@@ -16,5 +16,7 @@ namespace CoreBot
         public string Image { get; set; }
 
         public string Name { get; set; }
+
+        public string ResourceGroup { get; set; }
     }
 }

@@ -21,6 +21,7 @@ namespace Microsoft.BotBuilderSamples.Bots
         {
         }
 
+        /*
         protected override async Task OnMembersAddedAsync(IList<ChannelAccount> membersAdded, ITurnContext<IConversationUpdateActivity> turnContext, CancellationToken cancellationToken)
         {
             foreach (var member in membersAdded)
@@ -35,7 +36,7 @@ namespace Microsoft.BotBuilderSamples.Bots
                     await Dialog.RunAsync(turnContext, ConversationState.CreateProperty<DialogState>("DialogState"), cancellationToken);
                 }
             }
-        }
+        }*/
 
         // Load attachment from embedded resource.
         private Attachment CreateAdaptiveCardAttachment()
